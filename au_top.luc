@@ -19,9 +19,7 @@ module au_top (
     // clock. This ensures the entire FPGA comes out of reset at the same time.
     reset_conditioner reset_cond;
   }
-  
-  eight_bit_adder eightbitadder;
-  full_adder_ROM fulladderROM;
+ 
   
   always {
     reset_cond.in = ~rst_n; // input raw inverted reset signal
@@ -42,15 +40,6 @@ module au_top (
     
     io_led[2][1] = fulladder.s;    //io_dip[2][1] as s 
     io_led[2][0] = fulladder.cout;  //io_dip[2][0] as cout 
-    
-    //for 8-bit ripple carry fulladder//
-    eightbitadder.x = io_dip[0];
-    eightbitadder.y = io_dip[1];
-    eightbitadder.cin = io_dip[2][0];
-    io_led[1] = eightbitadder.s;
-    io_led[2][0] = eightbitadder.cout;
 
-    //for fulladder ROM
-    fulladderROM.x = io_dip[0];
   }
 }
