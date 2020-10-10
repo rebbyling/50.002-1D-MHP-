@@ -1,0 +1,141 @@
+module au_top (
+    input clk,              // 100MHz clock
+    input rst_n,            // reset button (active low)
+    output led [8],         // 8 user controllable LEDs
+    input usb_rx,           // USB->Serial input
+    output usb_tx,          // USB->Serial output
+    output io_led [3][8],   // LEDs on IO Shield
+    output io_seg [8],      // 7-segment LEDs on IO Shield
+    output io_sel [4],      // Digit select on IO Shield
+    input io_button [5],    // 5 buttons on IO Shield
+    input io_dip [3][8],    // DIP switches on IO Shield
+    input s_cout_input[2],
+    output a_b_cout_output[3],
+    input a_b_cin_input[3]
+  ) {
+  
+  sig rst;                  // reset signal
+  full_adder fulladder;
+  eight_bit_adder eightbitadder;
+  counter slowclock(#SIZE(1),#DIV(26), .clk(clk), .rst(rst));
+  fsm y_controller(.clk(slowclock.value), .rst(rst)) = {S0, S1, S2};
+  dff register_1[3](#INIT(0), .clk(slowclock.value), .rst(rst));
+  edge_detector slowClockEdge(.clk(clk));
+  
+  .clk(clk) {
+    // The reset conditioner is used to synchronize the reset signal to the FPGA
+    // clock. This ensures the entire FPGA comes out of reset at the same time.
+    reset_conditioner reset_cond;
+  }
+  
+  always {
+    reset_cond.in = ~rst_n; // input raw inverted reset signal
+    rst = reset_cond.out;   // conditioned reset
+    
+    usb_tx = usb_rx;        // loop serial port
+    
+    led = 8h00;             // turn LEDs off
+    a_b_cout_output = 3h00;
+    io_led = 3x{{8h00}};    // turn LEDs off
+    io_seg = 8hff;          // turn segments off
+    io_sel = 4hf;           // select no digits
+    
+    slowClockEdge.in = slowclock.value;
+    
+    eightbitadder.y = 3h00;
+    eightbitadder.x = register_1.q;
+    eightbitadder.cin = b0;
+    
+    if (slowClockEdge.out ==b1) {
+      case(y_controller.q) {
+      y_controller.S0: 
+        if(io_dip[0][0]) {
+          eightbitadder.x = 3h00;
+          eightbitadder.y = 3h00;
+          fulladder.x = eightbitadder.s[0];
+          fulladder.y = eightbitadder.s[1];
+          fulladder.cin = eightbitadder.s[2];
+          a_b_cout_output = eightbitadder.s;
+          io_led[1] = eightbitadder.s;
+          io_led[2][0] = fulladder.s;
+          io_led[2][1] = fulladder.cout;
+          if(fulladder.s == s_cout_input[0] && fulladder.cout == s_cout_input[1]) {
+            io_led[2][7] = 1;
+          }
+          y_controller.d = y_controller.S1;
+        }
+        else {
+          fulladder.x = a_b_cin_input[0];
+          fulladder.y = a_b_cin_input[1];
+          fulladder.cin = a_b_cin_input[2];
+          io_led[1] = eightbitadder.s;
+          io_led[2][0] = fulladder.s;
+          io_led[2][1] = fulladder.cout;
+          if(fulladder.s == s_cout_input[0] && fulladder.cout == s_cout_input[1]) {
+            io_led[2][7] =1;
+          }
+          y_controller.d = y_controller.S2;
+        }
+      y_controller.S1:
+      if(io_dip[0][0]) {
+        eightbitadder.y = 3h01;
+        fulladder.x = eightbitadder.s[0];
+        fulladder.y = eightbitadder.s[1];
+        fulladder.cin = eightbitadder.s[2];
+        a_b_cout_output = eightbitadder.s;
+        io_led[1] = eightbitadder.s;
+        io_led[2][0] = fulladder.s;
+        io_led[2][1] =fulladder.cout;
+        if(fulladder.s == s_cout_input[0] && fulladder.cout == s_cout_input[1]) {
+          io_led[2][7] = 1;
+          } 
+          y_controller.d = y_controller.S1;
+        } else{
+        fulladder.x = a_b_cin_input[0];
+          fulladder.y= a_b_cin_input[1];
+          fulladder.cin = a_b_cin_input[2];
+          io_led[1] = a_b_cin_input;
+          io_led[2][0] = fulladder.s;
+          io_led[2][1] = fulladder.cout;
+          if (fulladder.s ==s_cout_input[0] && fulladder.cout ==s_cout_input[1]) {
+            io_led[2][7] = 1;
+          }
+          y_controller.d=y_controller.S2;
+        }
+      y_controller.S2:
+      if (io_dip[0][0]) {
+        eightbitadder.x = 3h00;
+          eightbitadder.y = 3h00;
+          fulladder.x = eightbitadder.s[0];
+          fulladder.y = eightbitadder.s[1];
+          fulladder.cin = eightbitadder.s[2];
+          a_b_cout_output = eightbitadder.s;
+          io_led[1] = eightbitadder.s;
+          io_led[2][0] = fulladder.s;
+          io_led[2][1] = fulladder.cout;
+          if (fulladder.s == s_cout_input[0] && fulladder.cout==s_cout_input[1]) {
+            io_led[2][7] = 1;
+          } 
+          y_controller.d = y_controller.S1;
+        }
+        else {
+        fulladder.x = a_b_cin_input[0];
+          fulladder.y = a_b_cin_input[1];
+          fulladder.cin = a_b_cin_input[2];
+          io_led[1] = a_b_cin_input;
+          io_led[2][0] = fulladder.s;
+          io_led[2][1] = fulladder.cout;
+          if(fulladder.s == s_cout_input[0] && fulladder.cout== s_cout_input[1]) {
+            io_led[2][7] = 1;
+          }
+          y_controller.d = y_controller.S2;
+        }
+      } 
+      register_1.d= fulladder.s;
+    }
+    else {
+    register_1.d = register_1.q;
+    }
+    fulladder.cin = b0;
+  }
+}

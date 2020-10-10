@@ -1,0 +1,29 @@
+module eight_bit_adder (
+	input x[8],
+	input y[8],
+	input cin,
+	output s[8],
+	output cout
+)
+
+{
+full_adder fulladder[8];
+ always {
+	fulladder.x = x;
+	fulladder.y = y;
+	fulladder.cin[0] = cin;
+	fulladder.cin[7:1] = fulladder.cout[6:0];
+	s = fulladder.s;
+	cout = fulladder.cout[7];
+	}
+}
+
+// fulladder.cin[7:1] = fulladder.cout[6:0];
+//equivalent to 
+// fulladder.cin[7] = fulladder.cout[6];
+// fulladder.cin[6] = fulladder.cout[5];
+// fulladder.cin[5] = fulladder.cout[4];
+// fulladder.cin[4] = fulladder.cout[3];
+// fulladder.cin[3] = fulladder.cout[2];
+// fulladder.cin[2] = fulladder.cout[1];
+// fulladder.cin[1] = fulladder.cout[0];
